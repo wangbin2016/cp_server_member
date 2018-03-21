@@ -17,10 +17,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
+import com.caipiao.common.data.RequestData;
 import com.caipiao.common.data.ResponseData;
 import com.caipiao.common.data.responsestatus.CommonResponseStatus;
 import com.caipiao.member.entity.Member;
 import com.caipiao.member.service.MemberService;
+import com.caipiao.server.member.body.request.RegistRequest;
 import com.caipiao.server.member.body.response.MemberInfoResponse;
 import com.caipiao.server.member.body.response.RegistReponse;
 import com.caipiao.server.member.service.MessageService;
@@ -69,22 +71,22 @@ public class UserController {
 	}
 
 	@RequestMapping(value = { "regist" })
-	public ResponseEntity<ResponseData<RegistReponse>> regist(String account, String password, String mobile, String nickName,
-			String email) {
+	public ResponseEntity<ResponseData<RegistReponse>> regist(RequestData<RegistRequest> req) {
 		ResponseData<RegistReponse> responset = null;
 		try {
+			RegistRequest regist = req.getBody();
 			Member member = new Member();
-			member.setAccount(account);
+			member.setAccount(regist.getAccount());
 			member.setCreateTime(new Date());
-			member.setEmail(email);
-			member.setMobile(mobile);
-			member.setNickname(nickName);
-			member.setPassword(password);
+			member.setEmail(regist.getEmail());
+			member.setMobile(regist.getMobile());
+			member.setNickname(regist.getNickName());
+			member.setPassword(regist.getPassword());
 			member.setStatus(1);
 			memberService.regist(member);
-			RegistReponse regist = new RegistReponse();
-			regist.setId("5564");
-			responset = new ResponseData<RegistReponse>(CommonResponseStatus.SUCCESS, regist);
+			RegistReponse responsetBody = new RegistReponse();
+			responsetBody.setId("5564");
+			responset = new ResponseData<RegistReponse>(CommonResponseStatus.SUCCESS, responsetBody);
 		} catch (Exception e) {
 			responset = new ResponseData<RegistReponse>(CommonResponseStatus.EXCEPTION);
 			e.printStackTrace();

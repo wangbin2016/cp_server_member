@@ -6,5 +6,9 @@ import lombok.Data;
 
 @Data
 public class RegistRequest implements DataBody{
-	private String id;
+	private String account;
+	private String password; 
+	private String mobile; 
+	private String nickName;
+	private String email;
 }
