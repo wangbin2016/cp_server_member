@@ -17,22 +17,24 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
+import com.caipiao.common.data.ResponseData;
+import com.caipiao.common.data.responsestatus.CommonResponseStatus;
 import com.caipiao.member.entity.Member;
 import com.caipiao.member.service.MemberService;
-import com.caipiao.server.member.entity.Regist;
-import com.caipiao.server.member.entity.Response;
-import com.caipiao.server.member.entity.ResponseStatus;
+import com.caipiao.server.member.body.response.MemberInfoResponse;
+import com.caipiao.server.member.body.response.RegistReponse;
 import com.caipiao.server.member.service.MessageService;
 import com.caipiao.server.member.service.MessageService.SmsSendRequest;
-import com.google.gson.JsonObject;
 
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
+@Data
 @Slf4j
 @RestController
 @RequestMapping("/user/")
 public class UserController {
+	@Autowired
 	private MemberService memberService;
 	@Autowired
 	private RestTemplate restTemplate;
@@ -47,11 +49,29 @@ public class UserController {
 		ResponseEntity<SmsSendResponse> response = doSend(mobile, code);
 		return response;
 	}
+	
+	@RequestMapping(value = { "info" })
+	public ResponseEntity<ResponseData<MemberInfoResponse>> regist(String account) {
+		ResponseData<MemberInfoResponse> responset = null;
+		try {
+			Member member = memberService.getMember(account, null);
+			MemberInfoResponse memberInfo = new MemberInfoResponse();
+			memberInfo.setAccount(account);
+			memberInfo.setMobile(member.getMobile());
+			memberInfo.setNickname(member.getNickname());
+			responset = new ResponseData<MemberInfoResponse>(CommonResponseStatus.SUCCESS,memberInfo);
+		} catch (Exception e) {
+			responset = new ResponseData<MemberInfoResponse>(CommonResponseStatus.EXCEPTION);
+			e.printStackTrace();
+		}
+		ResponseEntity<ResponseData<MemberInfoResponse>> response = new ResponseEntity<ResponseData<MemberInfoResponse>>(responset,HttpStatus.OK);
+		return response;
+	}
 
 	@RequestMapping(value = { "regist" })
-	public ResponseEntity<Response<Regist>> regist(String account, String password, String mobile, String nickName,
+	public ResponseEntity<ResponseData<RegistReponse>> regist(String account, String password, String mobile, String nickName,
 			String email) {
-		Response<Regist> responset = null;
+		ResponseData<RegistReponse> responset = null;
 		try {
 			Member member = new Member();
 			member.setAccount(account);
@@ -62,21 +82,21 @@ public class UserController {
 			member.setPassword(password);
 			member.setStatus(1);
 			memberService.regist(member);
-			Regist regist = new Regist();
+			RegistReponse regist = new RegistReponse();
 			regist.setId("5564");
-			responset = new Response<Regist>(ResponseStatus.OK, regist);
+			responset = new ResponseData<RegistReponse>(CommonResponseStatus.SUCCESS, regist);
 		} catch (Exception e) {
-			responset = new Response<Regist>(ResponseStatus.FAIR, null);
+			responset = new ResponseData<RegistReponse>(CommonResponseStatus.EXCEPTION);
 			e.printStackTrace();
 		}
-		ResponseEntity<Response<Regist>> response = new ResponseEntity<Response<Regist>>(responset, HttpStatus.OK);
+		ResponseEntity<ResponseData<RegistReponse>> response = new ResponseEntity<ResponseData<RegistReponse>>(responset, HttpStatus.OK);
 		return response;
 	}
 	
 	public static void main(String[] args) {
-		Response<Regist> responset = new Response<Regist>(ResponseStatus.FAIR, null);
-		ResponseEntity<Response<Regist>> response = new ResponseEntity<Response<Regist>>(responset, HttpStatus.OK);
-		
+		ResponseData<RegistReponse> responset = new ResponseData<RegistReponse>(CommonResponseStatus.SUCCESS);
+		ResponseEntity<ResponseData<RegistReponse>> response = new ResponseEntity<ResponseData<RegistReponse>>(responset, HttpStatus.OK);
+		System.out.println(response.getBody());
 	}
 
 	public ResponseEntity<SmsSendResponse> doSend(String mobile, String code) {
