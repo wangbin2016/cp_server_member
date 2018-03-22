@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
-import com.caipiao.common.data.RequestData;
 import com.caipiao.common.data.ResponseData;
 import com.caipiao.common.data.responsestatus.CommonResponseStatus;
 import com.caipiao.member.entity.Member;
@@ -34,8 +33,8 @@ import lombok.extern.slf4j.Slf4j;
 @Data
 @Slf4j
 @RestController
-@RequestMapping("/user/")
-public class UserController {
+@RequestMapping("/member/") 
+public class MemberController {
 	@Autowired
 	private MemberService memberService;
 	@Autowired
@@ -71,16 +70,15 @@ public class UserController {
 	}
 
 	@RequestMapping(value = { "regist" })
-	public ResponseEntity<ResponseData<RegistReponse>> regist(RequestData<RegistRequest> req) {
+	public ResponseEntity<ResponseData<RegistReponse>> regist(RegistRequest regist) {
 		ResponseData<RegistReponse> responset = null;
 		try {
-			RegistRequest regist = req.getBody();
 			Member member = new Member();
 			member.setAccount(regist.getAccount());
 			member.setCreateTime(new Date());
 			member.setEmail(regist.getEmail());
 			member.setMobile(regist.getMobile());
-			member.setNickname(regist.getNickName());
+			member.setNickname(regist.getNikename());
 			member.setPassword(regist.getPassword());
 			member.setStatus(1);
 			memberService.regist(member);
