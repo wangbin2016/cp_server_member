@@ -8,4 +8,6 @@ public class MemberInfoResponse implements DataBody{
 	private String account;
 	private String nickname;
 	private String mobile;
+	private String address;
+	private String email;
 }

@@ -1,18 +1,9 @@
 package com.caipiao.server.member.controller;
-
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
@@ -26,19 +17,17 @@ import com.caipiao.common.utils.MD5;
 import com.caipiao.common.utils.constant.MemberConstant;
 import com.caipiao.member.entity.Member;
 import com.caipiao.member.service.MemberService;
+import com.caipiao.server.member.body.request.CheckLoginParam;
 import com.caipiao.server.member.body.request.LoginParam;
 import com.caipiao.server.member.body.request.RegistParam;
 import com.caipiao.server.member.body.response.LoginReponse;
 import com.caipiao.server.member.body.response.MemberInfoResponse;
 import com.caipiao.server.member.body.response.RegistReponse;
 import com.caipiao.server.member.service.MessageService;
-import com.caipiao.server.member.service.MessageService.SmsSendRequest;
 
 import lombok.Data;
-import lombok.extern.slf4j.Slf4j;
 
 @Data
-@Slf4j
 @RestController
 @RequestMapping("/member/")
 public class MemberController<T> {
@@ -49,25 +38,24 @@ public class MemberController<T> {
 	@Autowired
 	private MessageService messageService;
 
-	@RequestMapping(value = { "regist/sms" })
-	public ResponseEntity<SmsSendResponse> sms(String mobile) {
-		Random random = new Random();
-		int next = random.nextInt(10000000);
-		String code = "" + (10000000 - next);
-		ResponseEntity<SmsSendResponse> response = doSend(mobile, code);
-		return response;
-	}
-
 	@RequestMapping(value = { "info" })
-	public ResponseEntity<ResponseData<MemberInfoResponse>> regist(String account) {
+	public ResponseEntity<ResponseData<MemberInfoResponse>> regist(CheckLoginParam param) {
 		ResponseData<MemberInfoResponse> responset = null;
 		try {
-			Member member = memberService.getMember(account, null);
+			String token = param.getToken();
+			String account = param.getAccount();
 			MemberInfoResponse memberInfo = new MemberInfoResponse();
-			memberInfo.setAccount(account);
-			memberInfo.setMobile(member.getMobile());
-			memberInfo.setNickname(member.getNickname());
-			responset = new ResponseData<MemberInfoResponse>(CommonResponseStatus.SUCCESS, memberInfo);
+			Member member = RedisUtils.getSession(token,MemberConstant.MEMBER);
+			if(member == null || account==null || !account.equals(member.getAccount())) {				
+				responset = new ResponseData<MemberInfoResponse>(MemberResponseStatus.LOGIN_INFO_ERROR, memberInfo);
+			}else {
+				memberInfo.setAccount(account);
+				memberInfo.setMobile(member.getMobile());
+				memberInfo.setNickname(member.getNickname());
+				memberInfo.setEmail(member.getEmail());
+				memberInfo.setAddress("ss");
+				responset = new ResponseData<MemberInfoResponse>(CommonResponseStatus.SUCCESS, memberInfo);
+			}
 		} catch (Exception e) {
 			responset = new ResponseData<MemberInfoResponse>(CommonResponseStatus.EXCEPTION);
 			e.printStackTrace();
@@ -86,14 +74,16 @@ public class MemberController<T> {
 	public ResponseEntity<ResponseData<DataBody>> login(LoginParam param) {
 		ResponseData<DataBody> responset = null;
 		Member member = memberService.getMember(param.getAccount(), param.getPassword());
-		if (member != null) {
+		if (member == null) {
+			responset = new ResponseData<DataBody>(MemberResponseStatus.LOGIN_ERROR, null);
+		} else if(member.getStatus() == 0){
+			responset = new ResponseData<DataBody>(MemberResponseStatus.MEMBER_LOCK_ERROR, null);
+		}else {
 			LoginReponse responsetBody = new LoginReponse();
 			responsetBody.setAccount(member.getAccount());
 			responsetBody.setToken(createToken(member));
 			responset = new ResponseData<DataBody>(CommonResponseStatus.SUCCESS, responsetBody);
 			RedisUtils.setSession(responsetBody.getToken(), MemberConstant.MEMBER, member);
-		} else {
-			responset = new ResponseData<DataBody>(MemberResponseStatus.LOGIN_ERROR, null);
 		}
 		return getResponseContent(responset);
 	}
@@ -141,7 +131,7 @@ public class MemberController<T> {
 		System.out.println(response.getBody());
 	}
 
-	public ResponseEntity<SmsSendResponse> doSend(String mobile, String code) {
+	/*public ResponseEntity<SmsSendResponse> doSend(String mobile, String code) {
 		final String sendUrl = "http://message-service/message/sms/send";
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
@@ -154,37 +144,5 @@ public class MemberController<T> {
 		HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<MultiValueMap<String, String>>(map, headers);
 		ResponseEntity<SmsSendResponse> response = restTemplate.postForEntity(sendUrl, request, SmsSendResponse.class);
 		return response;
-	}
-
-	@RequestMapping(value = { "regist/sms2" })
-	public ResponseEntity<SmsSendResponse> sms2(String mobile) {
-		Random random = new Random();
-		int next = random.nextInt(10000000);
-		String code = "" + (10000000 - next);
-		ResponseEntity<SmsSendResponse> response = doSendFeign(mobile, code);
-		return response;
-	}
-
-	public ResponseEntity<SmsSendResponse> doSendFeign(String mobile, String code) {
-		SmsSendRequest request = new SmsSendRequest();
-		request.setMobile(mobile);
-		request.setTemplateId("CHECK_CODE");
-		Map<String, Object> params = new HashMap<String, Object>();
-		params.put("code", code);
-		request.setParams(params);
-		return messageService.send(request);
-	}
-
-	@Data
-	public static class SmsSendResponse {
-		/**
-		 * 返回消息
-		 */
-		private String message;
-		/**
-		 * 返回状态码
-		 */
-		private String code;
-	}
-
+	}*/
 }
