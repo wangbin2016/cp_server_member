@@ -116,7 +116,7 @@ public class MemberController<T> {
 			member.setEmail(regist.getEmail());
 			member.setMobile(regist.getMobile());
 			member.setNickname(regist.getNikename());
-			member.setPassword(MD5.sign(regist.getPassword()));
+			member.setPassword(regist.getPassword());
 			member.setStatus(1);
 			memberService.regist(member);
 			RegistReponse responsetBody = new RegistReponse();
